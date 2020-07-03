@@ -50,6 +50,7 @@ week_rows = soup.contents[0].contents[2].contents[13].contents[1].contents[3].co
 
 result = getAvailableTimeSlot(week_rows)
 #result = 'No available time slots'
+# git test
 
 if result != 'No available time slots':
     message = 'Subject: Available time slot: {}\n\n<a href="{}" target="_blank">link</a>'.format(result, link)
