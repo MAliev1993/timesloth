@@ -8,9 +8,11 @@ def check(calendar_rows: list, link: str):
     for day in calendar_rows:
         if day.text != '' and day.text[:24] != 'Keine freien Termine am ':
             sendAlert('Subject: Time slot available! \n\n{} Text: {}'.format(link, day.text))
-            logging.info("Success! Time slot found: %s", day.text)
+            # logging.info("Success! Time slot found: %s", day.text)
+            print("Success! Time slot found: %s", day.text)
             break
-    logging.info("Alas! No time slots found")
+    # logging.info("Alas! No time slots found")
+    print("Alas! No time slots found")
 
 
 def sendAlert(message: str):
