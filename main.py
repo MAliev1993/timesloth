@@ -1,18 +1,20 @@
 import bs4
 import smtplib
 from selenium import webdriver
-import logging
+# import logging
+from datetime import datetime
 
 
 def check(calendar_rows: list, link: str):
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for day in calendar_rows:
         if day.text != '' and day.text[:24] != 'Keine freien Termine am ':
             sendAlert('Subject: Time slot available! \n\n{} Text: {}'.format(link, day.text))
             # logging.info("Success! Time slot found: %s", day.text)
-            print("Success! Time slot found: %s", day.text)
+            print("%s: Success! Time slot found: %s", current_time, day.text)
             break
     # logging.info("Alas! No time slots found")
-    print("Alas! No time slots found")
+    print("%s: Alas! No time slots found", current_time)
 
 
 def sendAlert(message: str):
