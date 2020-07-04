@@ -22,10 +22,10 @@ def sendAlert(message: str):
     conn.quit()
 
 
-logging.basicConfig(filename='app.log',
-                    filemode='w',
-                    format='%(asctime)s - %(message)s',
-                    level=logging.INFO)
+# logging.basicConfig(filename='app.log',
+# filemode='w',
+# format='%(asctime)s - %(message)s',
+# level=logging.INFO)
 
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
