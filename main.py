@@ -1,13 +1,16 @@
 import bs4
 import smtplib
 from selenium import webdriver
+import logging
 
 
 def check(calendar_rows: list, link: str):
     for day in calendar_rows:
         if day.text != '' and day.text[:24] != 'Keine freien Termine am ':
             sendAlert('Subject: Time slot available! \n\n{} Text: {}'.format(link, day.text))
+            logging.info("Success! Time slot found: %s", day.text)
             break
+    logging.info("Alas! No time slots found")
 
 
 def sendAlert(message: str):
@@ -18,6 +21,11 @@ def sendAlert(message: str):
     conn.sendmail('misha.freeway@gmail.com', 'm-z-a@yandex.ru', message)
     conn.quit()
 
+
+logging.basicConfig(filename='app.log',
+                    filemode='w',
+                    format='%(asctime)s - %(message)s',
+                    level=logging.INFO)
 
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
