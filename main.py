@@ -2,20 +2,17 @@ import bs4
 import smtplib
 from selenium import webdriver
 import logging
-# from datetime import datetime
 from fake_useragent import UserAgent
 
 
 def check(calendar_rows: list, link: str):
-    # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for day in calendar_rows:
         if day.text != '' and day.text[:24] != 'Keine freien Termine am ':
             sendAlert('Subject: Time slot available! \n\n{} Text: {}'.format(link, day.text))
-            logging.info("Success! Time slot found: %s", day.text)
+            logger.info("Success! Time slot found: %s", day.text)
             print("{}: Success! Time slot found: {}".format(current_time, day.text))
             break
-    logging.info("Alas! No time slots found")
-    # print("{}: Alas! No time slots found".format(current_time))
+    logger.info("Alas! No time slots found")
 
 
 def sendAlert(message: str):
@@ -27,11 +24,18 @@ def sendAlert(message: str):
     conn.quit()
 
 
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger('CopasiTools')
+logger.setLevel(logging.INFO)
+log_filename = 'timesloth.log'
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+handler = logging.FileHandler(log_filename, 'a')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+# logging.basicConfig(filename=log_filename, format='%(asctime)s - %(message)s', level=logging.INFO)
 
 ua = UserAgent()
 userAgent = ua.random
-logging.info(userAgent)
+logger.info(userAgent)
 
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
