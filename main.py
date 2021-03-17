@@ -15,11 +15,16 @@ def check(calendar_rows: list, link: str):
 
 
 def sendAlert(message: str):
-    conn = smtplib.SMTP('smtp.gmail.com', 587)
+    from = 'a@example.org';
+    to = 'b@example.org';
+    pass = '12345';
+    smtp_host = 'host.example.org';
+    port = 587;
+    conn = smtplib.SMTP(smtp_host, port)
     conn.ehlo()
     conn.starttls()
-    conn.login('misha.freeway@gmail.com', '13krugovada')
-    conn.sendmail('misha.freeway@gmail.com', 'm-z-a@yandex.ru', message)
+    conn.login(email, pass)
+    conn.sendmail(from, to, message)
     conn.quit()
 
 
