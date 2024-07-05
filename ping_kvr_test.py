@@ -1,11 +1,12 @@
+import logging
+import requests
+from datetime import datetime, time
+from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
-import time
-import datetime
-import logging
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from fake_useragent import UserAgent
 
 # Create loggers
@@ -43,86 +44,110 @@ waiting_time = 3
 retry_interval = 60
 
 
+def solve_friendly_captcha(driver, site_key, endpoint, puzzle_url):
+    try:
+        info_logger.info("Starting Friendly CAPTCHA solving process")
+
+        # Get the CAPTCHA puzzle
+        puzzle_response = requests.post(puzzle_url, json={"sitekey": site_key})
+        puzzle_response.raise_for_status()
+        puzzle_data = puzzle_response.json()
+
+        captcha_solution = puzzle_data.get("solution")
+
+        if captcha_solution:
+            info_logger.info("Friendly CAPTCHA solution obtained")
+            # Inject the solution into the CAPTCHA field and submit the form
+            driver.execute_script(f"document.getElementById('friendly-captcha-solution').value='{captcha_solution}';")
+            driver.find_element(By.ID, 'captcha-form-submit-button').click()
+            sleep(waiting_time)  # Wait for the page to reload after solving CAPTCHA
+            return True
+        else:
+            error_logger.error("Failed to obtain Friendly CAPTCHA solution")
+            return False
+    except Exception as e:
+        error_logger.error("Error solving Friendly CAPTCHA", exc_info=True)
+        return False
+
+
 def check_availability():
+    info_logger.info("Starting check_availability function")
     driver = webdriver.Chrome(options=options)
     driver.get(url)
 
     driver.implicitly_wait(waiting_time)
 
-    # Switch to the iframe
     try:
-        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
-    except Exception as e:
-        error_logger.error("Error switching to iframe:")
-        error_logger.error(driver.page_source)  # Print the page source for debugging
-        return False
+        # Switch to the iframe by ID
+        WebDriverWait(driver, waiting_time).until(
+            EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
 
-    # Locate the select field and change its value
-    try:
-        select_element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'CASETYPES[Notfalltermin UA 35]')))
-        select = Select(select_element)
-        select.select_by_value('1')
-    except Exception as e:
-        error_logger.error("Error selecting value in the select field:")
-        return False
+        # Select the option in the select field and submit the form
+        select = WebDriverWait(driver, waiting_time).until(
+            EC.element_to_be_clickable((By.NAME, 'CASETYPES[Notfalltermin UA 35]')))
+        select.click()
 
-    # Locate and click the submit button
-    try:
-        submit_button = driver.find_element(By.CLASS_NAME, 'WEB_APPOINT_FORWARDBUTTON')
+        option = WebDriverWait(driver, waiting_time).until(
+            EC.element_to_be_clickable((By.XPATH, '//option[@value="1"]')))
+        option.click()
+
+        submit_button = WebDriverWait(driver, waiting_time).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, 'WEB_APPOINT_FORWARDBUTTON')))
         submit_button.click()
-    except Exception as e:
-        error_logger.error("Error clicking the submit button:")
-        return False
 
-    info_logger.info("Form submitted successfully")
+        info_logger.info("Form submitted successfully")
 
-    # Wait for the new page to load
-    time.sleep(waiting_time)
+        # Wait for the next page to load
+        sleep(waiting_time)
 
-    # Switch to the iframe again on the new page
-    try:
-        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
-    except Exception as e:
-        error_logger.error("Error switching to iframe on the new page:")
-        error_logger.error(driver.page_source)  # Print the page source for debugging
-        return False
+        # Detect and solve CAPTCHA
+        if "captcha" in driver.page_source.lower():
+            info_logger.info("CAPTCHA detected, attempting to solve")
+            captcha_site_key = driver.execute_script("return captchaSiteKey;")
+            captcha_endpoint = driver.execute_script("return captchaEndpoint;")
+            captcha_puzzle = driver.execute_script("return captchaPuzzle;")
 
-    # Check for "Keine freien Termine am" for July 5th
-    try:
-        calendar_cells = driver.find_elements(By.CSS_SELECTOR, 'td.nat_calendar')
-        info_logger.info(driver.page_source)
-
-        for cell in calendar_cells:
-            span_text = cell.find_element(By.TAG_NAME, 'span').text
-            if 'Keine freien Termine am' in span_text:
-                info_logger.info(f"'Keine freien Termine am 5.7.2024' found: {cell.text}")
-                return True
-        info_logger.info("'Keine freien Termine am 5.7.2024' not found")
-        return False
-    except Exception as e:
-        error_logger.error("Error while checking availability:")
-        return False
-
-def is_within_operating_hours():
-    now = datetime.datetime.now()
-    if now.weekday() >= 5:  # Saturday and Sunday are 5 and 6
-        return False
-    if now.hour < 6 or now.hour >= 18:
-        return False
-    return True
-
-try:
-    while True:
-        if is_within_operating_hours():
-            available = check_availability()
-            if available:
-                info_logger.info("Availability check passed. Exiting...")
-                break
+            if solve_friendly_captcha(driver, captcha_site_key, captcha_endpoint, captcha_puzzle):
+                info_logger.info("Friendly CAPTCHA solved and form submitted")
             else:
-                info_logger.info("Check completed. Checking again in 60 seconds...")
-        else:
-            info_logger.info("Outside operating hours. Waiting...")
+                error_logger.error("Failed to solve Friendly CAPTCHA")
+                return False
 
-        time.sleep(retry_interval)
-finally:
-    driver.quit()
+        # Check for the availability of appointments
+        while True:
+            current_time = datetime.now().time()
+            if time(6, 0) <= current_time <= time(18, 0):  # Check only between 06:00 and 18:00, Monday to Friday
+                driver.switch_to.default_content()
+                WebDriverWait(driver, waiting_time).until(
+                    EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
+
+                cells = driver.find_elements(By.CSS_SELECTOR, 'td.nat_calendar')
+
+                for cell in cells:
+                    if "Keine freien Termine am" not in cell.text and "5" in cell.text:
+                        info_logger.info(f"Available appointment found: {cell.text}")
+                        print(f"Available appointment found: {cell.text}")
+                        return True
+                    else:
+                        info_logger.info(f"No available appointment in cell: {cell.text}")
+
+                info_logger.info("No available appointments found, retrying after interval")
+                sleep(retry_interval)
+            else:
+                info_logger.info("Out of checking hours. Waiting until next available check time.")
+                sleep(retry_interval)
+    except TimeoutException as e:
+        error_logger.error("TimeoutException occurred", exc_info=True)
+    except NoSuchElementException as e:
+        error_logger.error("NoSuchElementException occurred", exc_info=True)
+    finally:
+        driver.quit()
+        info_logger.info("Driver quit")
+
+
+if __name__ == "__main__":
+    available = check_availability()
+    if available:
+        info_logger.info("Appointment available")
+    else:
+        info_logger.info("No appointments available")
