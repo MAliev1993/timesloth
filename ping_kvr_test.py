@@ -39,17 +39,18 @@ options.add_argument('window-size=1200x600')
 options.add_argument(f'user-agent={userAgent}')
 
 url = 'https://stadt.muenchen.de/terminvereinbarung_/terminvereinbarung_abh.html?cts=1000113'
-waiting_time = 3
+wait_interval = 3
+retry_interval = 60
 
 driver = webdriver.Chrome(options=options)
 driver.get(url)
 
-driver.implicitly_wait(waiting_time)
+driver.implicitly_wait(wait_interval)
 
 def check_availability():
     # Switch to the iframe
     try:
-        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
+        WebDriverWait(driver, wait_interval).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
         error_logger.error("Error switching to iframe:", e)
         error_logger.error(driver.page_source)  # Print the page source for debugging
@@ -75,11 +76,11 @@ def check_availability():
     info_logger.info("Form submitted successfully")
 
     # Wait for the new page to load
-    time.sleep(5)
+    time.sleep(wait_interval)
 
     # Switch to the iframe again on the new page
     try:
-        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
+        WebDriverWait(driver, wait_interval).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
         error_logger.error("Error switching to iframe on the new page:", e)
         error_logger.error(driver.page_source)  # Print the page source for debugging
@@ -120,6 +121,6 @@ try:
         else:
             info_logger.info("Outside operating hours. Waiting...")
 
-        time.sleep(60)
+        time.sleep(retry_interval)
 finally:
     driver.quit()
