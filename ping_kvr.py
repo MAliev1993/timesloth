@@ -42,12 +42,13 @@ url = 'https://stadt.muenchen.de/terminvereinbarung_/terminvereinbarung_abh.html
 waiting_time = 3
 retry_interval = 60
 
-driver = webdriver.Chrome(options=options)
-driver.get(url)
-
-driver.implicitly_wait(waiting_time)
 
 def check_availability():
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    driver.implicitly_wait(waiting_time)
+
     # Switch to the iframe
     try:
         WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
