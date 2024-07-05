@@ -1,4 +1,3 @@
 # ignore files
 /app.log
 .idea/
-logs/

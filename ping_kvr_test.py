@@ -90,6 +90,7 @@ def check_availability():
     # Check for "Keine freien Termine am" for July 5th
     try:
         calendar_cells = driver.find_elements(By.CSS_SELECTOR, 'td.nat_calendar')
+        info_logger.info(driver.page_source)
 
         for cell in calendar_cells:
             span_text = cell.find_element(By.TAG_NAME, 'span').text
