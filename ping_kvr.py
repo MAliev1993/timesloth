@@ -2,12 +2,15 @@ import logging
 import requests
 from datetime import datetime, time
 from time import sleep
+import random
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
 from fake_useragent import UserAgent
+import pyautogui
 
 # Create loggers
 info_logger = logging.getLogger('info_logger')
@@ -38,21 +41,33 @@ options = webdriver.ChromeOptions()
 options.add_argument('headless')
 options.add_argument('window-size=1200x600')
 options.add_argument(f'user-agent={userAgent}')
+options.add_argument("--disable-blink-features=AutomationControlled")
+options.add_experimental_option("excludeSwitches", ["enable-automation"])
+options.add_experimental_option('useAutomationExtension', False)
+
+# Load extension (Optional, mimic human-like behavior)
+# options.add_argument('load-extension=/path/to/extension')
 
 url = 'https://stadt.muenchen.de/terminvereinbarung_/terminvereinbarung_abh.html?cts=1000113'
 waiting_time = 3
 retry_interval = 60
 
 
+# Function to simulate human-like mouse movements
+def human_like_mouse_movements(driver):
+    actions = ActionChains(driver)
+    actions.move_by_offset(random.randint(0, 100), random.randint(0, 100)).perform()
+
 def solve_friendly_captcha(driver, site_key, endpoint, puzzle_url):
     try:
         info_logger.info("Starting Friendly CAPTCHA solving process")
 
-        # Get the CAPTCHA puzzle
-        puzzle_response = requests.post(puzzle_url, json={"sitekey": site_key})
+        # Get the CAPTCHA puzzle using GET method
+        puzzle_response = requests.get(puzzle_url, params={"sitekey": site_key})
         puzzle_response.raise_for_status()
         puzzle_data = puzzle_response.json()
 
+        # Normally, you would solve the puzzle here. For this example, we'll assume the puzzle_data contains the solution.
         captcha_solution = puzzle_data.get("solution")
 
         if captcha_solution:
@@ -78,6 +93,9 @@ def check_availability():
     driver.implicitly_wait(waiting_time)
 
     try:
+        # Simulate human-like mouse movements
+        human_like_mouse_movements(driver)
+
         # Switch to the iframe by ID
         WebDriverWait(driver, waiting_time).until(
             EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
