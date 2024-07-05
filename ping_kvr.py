@@ -39,20 +39,20 @@ options.add_argument('window-size=1200x600')
 options.add_argument(f'user-agent={userAgent}')
 
 url = 'https://stadt.muenchen.de/terminvereinbarung_/terminvereinbarung_abh.html?cts=1000113'
-wait_interval = 3
+waiting_time = 3
 retry_interval = 60
 
 driver = webdriver.Chrome(options=options)
 driver.get(url)
 
-driver.implicitly_wait(wait_interval)
+driver.implicitly_wait(waiting_time)
 
 def check_availability():
     # Switch to the iframe
     try:
-        WebDriverWait(driver, wait_interval).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
+        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
-        error_logger.error("Error switching to iframe:", e)
+        error_logger.error("Error switching to iframe:")
         error_logger.error(driver.page_source)  # Print the page source for debugging
         return False
 
@@ -62,7 +62,7 @@ def check_availability():
         select = Select(select_element)
         select.select_by_value('1')
     except Exception as e:
-        error_logger.error("Error selecting value in the select field:", e)
+        error_logger.error("Error selecting value in the select field:")
         return False
 
     # Locate and click the submit button
@@ -70,19 +70,19 @@ def check_availability():
         submit_button = driver.find_element(By.CLASS_NAME, 'WEB_APPOINT_FORWARDBUTTON')
         submit_button.click()
     except Exception as e:
-        error_logger.error("Error clicking the submit button:", e)
+        error_logger.error("Error clicking the submit button:")
         return False
 
     info_logger.info("Form submitted successfully")
 
     # Wait for the new page to load
-    time.sleep(retry_interval)
+    time.sleep(waiting_time)
 
     # Switch to the iframe again on the new page
     try:
-        WebDriverWait(driver, wait_interval).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
+        WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
-        error_logger.error("Error switching to iframe on the new page:", e)
+        error_logger.error("Error switching to iframe on the new page:")
         error_logger.error(driver.page_source)  # Print the page source for debugging
         return False
 
@@ -98,7 +98,7 @@ def check_availability():
                 return True
         return False
     except Exception as e:
-        error_logger.error(f"Error while checking availability: {e}")
+        error_logger.error("Error while checking availability:")
         return False
 
 def is_within_operating_hours():
