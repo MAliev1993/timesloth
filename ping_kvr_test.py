@@ -17,8 +17,8 @@ info_logger.setLevel(logging.INFO)
 error_logger.setLevel(logging.ERROR)
 
 # Create handlers
-info_handler = logging.FileHandler('logs/info.log')
-error_handler = logging.FileHandler('logs/error.log')
+info_handler = logging.FileHandler('logs/test_info.log')
+error_handler = logging.FileHandler('logs/test_error.log')
 
 # Create formatters and add them to handlers
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
