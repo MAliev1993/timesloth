@@ -61,7 +61,7 @@ def check_availability():
         select = Select(select_element)
         select.select_by_value('1')
     except Exception as e:
-        error_logger.error("Error selecting value in the select field:", e, )
+        error_logger.error("Error selecting value in the select field:", e)
         return False
 
     # Locate and click the submit button
