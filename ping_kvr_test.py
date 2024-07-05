@@ -31,7 +31,7 @@ error_logger.addHandler(error_handler)
 
 ua = UserAgent()
 userAgent = ua.random
-logger.info(userAgent)
+info_logger.info(userAgent)
 
 options = webdriver.ChromeOptions()
 options.add_argument('headless')
