@@ -8,14 +8,26 @@ import datetime
 import logging
 from fake_useragent import UserAgent
 
-logger = logging.getLogger('CopasiTools')
-logger.setLevel(logging.INFO)
-log_filename = 'timesloth.log'
-formatter = logging.Formatter('%(asctime)s - %(message)s')
-handler = logging.FileHandler(log_filename, 'a')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-# logging.basicConfig(filename=log_filename, format='%(asctime)s - %(message)s', level=logging.INFO)
+# Create loggers
+info_logger = logging.getLogger('info_logger')
+error_logger = logging.getLogger('error_logger')
+
+# Set levels
+info_logger.setLevel(logging.INFO)
+error_logger.setLevel(logging.ERROR)
+
+# Create handlers
+info_handler = logging.FileHandler('logs/info.log')
+error_handler = logging.FileHandler('logs/error.log')
+
+# Create formatters and add them to handlers
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+info_handler.setFormatter(formatter)
+error_handler.setFormatter(formatter)
+
+# Add handlers to loggers
+info_logger.addHandler(info_handler)
+error_logger.addHandler(error_handler)
 
 ua = UserAgent()
 userAgent = ua.random
@@ -39,8 +51,8 @@ def check_availability():
     try:
         WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
-        print("Error switching to iframe:", e)
-        print(driver.page_source)  # Print the page source for debugging
+        error_logger.error("Error switching to iframe:", e)
+        error_logger.error(driver.page_source)  # Print the page source for debugging
         return False
 
     # Locate the select field and change its value
@@ -49,7 +61,7 @@ def check_availability():
         select = Select(select_element)
         select.select_by_value('1')
     except Exception as e:
-        print("Error selecting value in the select field:", e)
+        error_logger.error("Error selecting value in the select field:", e, )
         return False
 
     # Locate and click the submit button
@@ -57,8 +69,10 @@ def check_availability():
         submit_button = driver.find_element(By.CLASS_NAME, 'WEB_APPOINT_FORWARDBUTTON')
         submit_button.click()
     except Exception as e:
-        print("Error clicking the submit button:", e)
+        error_logger.error("Error clicking the submit button:", e)
         return False
+
+    info_logger.info("Form submitted successfully")
 
     # Wait for the new page to load
     time.sleep(5)
@@ -67,8 +81,8 @@ def check_availability():
     try:
         WebDriverWait(driver, waiting_time).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'appointment')))
     except Exception as e:
-        print("Error switching to iframe on the new page:", e)
-        print(driver.page_source)  # Print the page source for debugging
+        error_logger.error("Error switching to iframe on the new page:", e)
+        error_logger.error(driver.page_source)  # Print the page source for debugging
         return False
 
     # Check for "Keine freien Termine am" for July 5th
@@ -77,13 +91,13 @@ def check_availability():
 
         for cell in calendar_cells:
             span_text = cell.find_element(By.TAG_NAME, 'span').text
-            if 'Keine freien Termine am' in span_text and '5.7.2024' in span_text:
-                print(f"'Keine freien Termine am 5.7.2024' found: {cell.text}")
+            if 'Keine freien Termine am' in span_text:
+                info_logger.info(f"'Keine freien Termine am 5.7.2024' found: {cell.text}")
                 return True
-        print("'Keine freien Termine am 5.7.2024' not found")
+        info_logger.info("'Keine freien Termine am 5.7.2024' not found")
         return False
     except Exception as e:
-        print(f"Error while checking availability: {e}")
+        error_logger.error(f"Error while checking availability: {e}")
         return False
 
 def is_within_operating_hours():
@@ -99,12 +113,12 @@ try:
         if is_within_operating_hours():
             available = check_availability()
             if available:
-                print("Availability check passed. Exiting...")
+                info_logger.info("Availability check passed. Exiting...")
                 break
             else:
-                print("Check completed. Checking again in 60 seconds...")
+                info_logger.info("Check completed. Checking again in 60 seconds...")
         else:
-            print("Outside operating hours. Waiting...")
+            info_logger.info("Outside operating hours. Waiting...")
 
         time.sleep(60)
 finally:
